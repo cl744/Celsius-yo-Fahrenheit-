@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Multi-Converter</title>
+    <style>
+        /* --- DESIGN CONFIGURATIONS --- */
+        :root[data-theme="light"][data-style="core"] {
+            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-color: #0284c7;
+            --accent-glow: 0 0 10px rgba(2, 132, 199, 0.2);
+            --result-bg: rgba(241, 245, 249, 0.9);
+            --box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+        }
+
+        :root[data-theme="dark"][data-style="core"] {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-glow: 0 0 15px rgba(56, 189, 248, 0.6);
+            --result-bg: rgba(15, 23, 42, 0.6);
+            --box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        :root[data-theme="light"][data-style="cyber"] {
+            --bg-gradient: linear-gradient(135deg, #fff5f5 0%, #fff0f6 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: #d90429;
+            --text-main: #2b2d42;
+            --text-muted: #8d99ae;
+            --accent-color: #ef233c;
+            --accent-glow: 0 0 12px rgba(239, 35, 60, 0.4);
+            --result-bg: #edf2f4;
+            --box-shadow: 0 10px 25px rgba(217, 4, 41, 0.15);
+        }
+
+        :root[data-theme="dark"][data-style="cyber"] {
+            --bg-gradient: linear-gradient(135deg, #000000 0%, #11001c 100%);
+            --card-bg: rgba(10, 0, 20, 0.8);
+            --card-border: #ff007f;
+            --text-main: #00ffff;
+            --text-muted: #bd00ff;
+            --accent-color: #ff007f;
+            --accent-glow: 0 0 20px #ff007f, 0 0 40px #bd00ff;
+            --result-bg: rgba(0, 0, 0, 0.9);
+            --box-shadow: 0 0 30px rgba(255, 0, 127, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            transition: all 0.5s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        body::before, body::after {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            filter: blur(120px);
+            opacity: 0.12;
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+        body::before { top: 10%; left: 15%; }
+        body::after { bottom: 10%; right: 15%; }
+
+        .converter-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 40px 30px;
+            border-radius: 24px;
+            border: 2px solid var(--card-border);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            max-width: 440px;
+            width: 100%;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+
+        h2 {
+            margin-top: 15px;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+            text-shadow: var(--accent-glow);
+            color: var(--text-main);
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            margin-left: 2%;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            box-sizing: border-box;
+            background-color: rgba(0, 0, 0, 0.05);
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        :root[data-theme="dark"] select, :root[data-theme="dark"] input {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent-color);
+            box-shadow: var(--accent-glow);
+        }
+
+        /* --- FLEX SYSTEM FOR UNIT INTERACTION --- */
+        .unit-selection-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .unit-col {
+            flex: 1;
+        }
+
+        .unit-col select {
+            margin-bottom: 0;
+        }
+
+        /* --- ARROW SWAP BUTTON --- */
+        .swap-btn {
+            background: rgba(0, 0, 0, 0.05);
+            border: 2px solid var(--card-border);
+            color: var(--text-main);
+            border-radius: 10px;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+
+        .swap-btn span {
+            font-size: 15px;
+            font-weight: 900;
+            line-height: 1;
+            height: 14px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Using structural rotation forces both arrows to match pixel-for-pixel */
+        .swap-btn span.arrow-left {
+            transform: rotate(180deg);
+        }
+
+        :root[data-theme="dark"] .swap-btn {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .swap-btn:hover {
+            border-color: var(--accent-color);
+            box-shadow: var(--accent-glow);
+            transform: scale(1.05);
+        }
+
+        .swap-btn:active {
+            transform: scale(0.95);
+        }
+
+        .result-container {
+            margin-top: 10px;
+            padding: 20px;
+            background-color: var(--result-bg);
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            transition: all 0.5s ease;
+        }
+
+        .result {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--accent-color);
+            text-shadow: var(--accent-glow);
+            word-break: break-all;
+        }
+
+        /* --- CONTROL SYSTEM INTERFACE --- */
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+        }
+
+        .toggle-btn {
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--card-border);
+            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 30px;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        :root[data-theme="dark"] .toggle-btn {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .toggle-btn:hover {
+            background: var(--accent-color);
+            color: #fff;
+        }
+        :root[data-theme="dark"][data-style="cyber"] .toggle-btn:hover {
+            color: #000;
+        }
+    </style>
+</head>
+<body id="appBody">
+
+<div class="converter-box">
+    <div class="controls-header">
+        <button class="toggle-btn" id="themeButton" onclick="toggleTheme()">Dark Mode</button>
+        <button class="toggle-btn" id="styleButton" onclick="toggleStyle()">Cyber Mode</button>
+    </div>
+    
+    <h2>OMEGA CONVERTER</h2>
+    
+    <label for="category">Select Dimension</label>
+    <select id="category" onchange="updateUnits()">
+        <option value="temperature">Temperature</option>
+        <option value="mass">Mass</option>
+        <option value="volume">Volume</option>
+        <option value="area">Area</option>
+        <option value="length">Length</option>
+        <option value="data">Data</option>
+        <option value="speed">Speed</option>
+        <option value="time">Time</option>
+        <option value="money">Money (USD Base)</option>
+    </select>
+
+    <label for="tempInput">Input Metric Value</label>
+    <input type="number" id="tempInput" placeholder="0.00" oninput="calculate()">
+
+    <div class="unit-selection-row">
+        <div class="unit-col">
+            <label for="fromUnit">From</label>
+            <select id="fromUnit" onchange="calculate()"></select>
+        </div>
+        
+        <button class="swap-btn" onclick="swapUnits()" title="Swap Vectors">
+            <span class="arrow-right">➔</span>
+            <span class="arrow-left">➔</span>
+        </button>
+        
+        <div class="unit-col">
+            <label for="toUnit">To</label>
+            <select id="toUnit" onchange="calculate()"></select>
+        </div>
+    </div>
+    
+    <div class="result-container">
+        <label style="text-align: center; margin: 0 0 5px 0;">Computed Vector</label>
+        <div class="result" id="result">--</div>
+    </div>
+</div>
+
+<script>
+let currentTheme = "dark";
+let currentStyle = "core";
+
+const unitData = {
+    temperature: {
+        units: ["Celsius (°C)", "Fahrenheit (°F)", "Kelvin (K)"],
+        convert: (val, from, to) => {
+            let c;
+            if (from === "Celsius (°C)") c = val;
+            else if (from === "Fahrenheit (°F)") c = (val - 32) / 1.8;
+            else if (from === "Kelvin (K)") c = val - 273.15;
+
+            if (to === "Celsius (°C)") return c;
+            if (to === "Fahrenheit (°F)") return (c * 1.8) + 32;
+            if (to === "Kelvin (K)") return c + 273.15;
+        }
+    },
+    mass: {
+        units: ["Kilogram (kg)", "Gram (g)", "Pound (lb)", "Ounce (oz)"],
+        ratios: { "Kilogram (kg)": 1, "Gram (g)": 0.001, "Pound (lb)": 0.45359237, "Ounce (oz)": 0.0283495231 }
+    },
+    volume: {
+        units: ["Liter (L)", "Milliliter (mL)", "Gallon (gal)", "Cup (cup)"],
+        ratios: { "Liter (L)": 1, "Milliliter (mL)": 0.001, "Gallon (gal)": 3.78541, "Cup (cup)": 0.236588 }
+    },
+    area: {
+        units: ["Square Meter (m²)", "Square Kilometer (km²)", "Square Mile (mi²)", "Acre"],
+        ratios: { "Square Meter (m²)": 1, "Square Kilometer (km²)": 1000000, "Square Mile (mi²)": 2589988.11, "Acre": 4046.86 }
+    },
+    length: {
+        units: ["Meter (m)", "Kilometer (km)", "Mile (mi)", "Foot (ft)", "Inch (in)"],
+        ratios: { "Meter (m)": 1, "Kilometer (km)": 1000, "Mile (mi)": 1609.34, "Foot (ft)": 0.3048, "Inch (in)": 0.0254 }
+    },
+    data: {
+        units: ["Bytes (B)", "Kilobytes (KB)", "Megabytes (MB)", "Gigabytes (GB)", "Terabytes (TB)"],
+        ratios: { "Bytes (B)": 1, "Kilobytes (KB)": 1024, "Megabytes (MB)": 1024**2, "Gigabytes (GB)": 1024**3, "Terabytes (TB)": 1024**4 }
+    },
+    speed: {
+        units: ["Meters/Second (m/s)", "Kilometers/Hour (km/h)", "Miles/Hour (mph)", "Knots"],
+        ratios: { "Meters/Second (m/s)": 1, "Kilometers/Hour (km/h)": 1/3.6, "Miles/Hour (mph)": 0.44704, "Knots": 0.514444 }
+    },
+    time: {
+        units: ["Nanoseconds (ns)", "Microseconds (μs)", "Milliseconds (ms)", "Seconds (s)", "Minutes (min)", "Hours (h)", "Days"],
+        ratios: { 
+            "Nanoseconds (ns)": 1e-9, 
+            "Microseconds (μs)": 1e-6, 
+            "Milliseconds (ms)": 0.001, 
+            "Seconds (s)": 1, 
+            "Minutes (min)": 60, 
+            "Hours (h)": 3600, 
+            "Days": 86400 
+        }
+    },
+    money: {
+        units: ["US Dollar (USD)", "Mexican Peso (MXN)", "Euro (EUR)", "British Pound (GBP)", "Japanese Yen (JPY)", "Canadian Dollar (CAD)"],
+        ratios: { "US Dollar (USD)": 1, "Mexican Peso (MXN)": 17.50, "Euro (EUR)": 0.92, "British Pound (GBP)": 0.79, "Japanese Yen (JPY)": 155.5, "Canadian Dollar (CAD)": 1.36 }
+    }
+};
+
+function updateUnits() {
+    const cat = document.getElementById("category").value;
+    const fromSel = document.getElementById("fromUnit");
+    const toSel = document.getElementById("toUnit");
+    
+    fromSel.innerHTML = "";
+    toSel.innerHTML = "";
+    
+    unitData[cat].units.forEach((unit) => {
+        fromSel.add(new Option(unit, unit));
+        toSel.add(new Option(unit, unit));
+    });
+    
+    if(toSel.options.length > 1) toSel.selectedIndex = 1;
+    calculate();
+}
+
+function swapUnits() {
+    const fromSel = document.getElementById("fromUnit");
+    const toSel = document.getElementById("toUnit");
+    
+    const tempIndex = fromSel.selectedIndex;
+    fromSel.selectedIndex = toSel.selectedIndex;
+    toSel.selectedIndex = tempIndex;
+    
+    calculate();
+}
+
+function calculate() {
+    const cat = document.getElementById("category").value;
+    const inputVal = document.getElementById("tempInput").value;
+    const fromUnit = document.getElementById("fromUnit").value;
+    const toUnit = document.getElementById("toUnit").value;
+    const resultDiv = document.getElementById("result");
+
+    if (inputVal === "") {
+        resultDiv.innerHTML = "--";
+        return;
+    }
+
+    const value = parseFloat(inputVal);
+    let out = 0;
+
+    if (cat === "temperature") {
+        out = unitData.temperature.convert(value, fromUnit, toUnit);
+    } else if (cat === "money") {
+        const valueInBase = value / unitData[cat].ratios[fromUnit];
+        out = valueInBase * unitData[cat].ratios[toUnit];
+    } else {
+        const valueInBase = value * unitData[cat].ratios[fromUnit];
+        out = valueInBase / unitData[cat].ratios[toUnit];
+    }
+
+    resultDiv.innerHTML = Number(out.toPrecision(7)).toString() + " " + toUnit.split(" ").pop();
+}
+
+function applyInterfaceAttributes() {
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    document.documentElement.setAttribute("data-style", currentStyle);
+    
+    document.getElementById("themeButton").innerHTML = currentTheme === "light" ? "Dark Mode" : "Light Mode";
+    document.getElementById("styleButton").innerHTML = currentStyle === "core" ? "Cyber Mode" : "Core Mode";
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === "light" ? "dark" : "light";
+    applyInterfaceAttributes();
+}
+
+function toggleStyle() {
+    currentStyle = currentStyle === "core" ? "cyber" : "core";
+    applyInterfaceAttributes();
+}
+
+// Initialize setup
+applyInterfaceAttributes();
+updateUnits();
+</script>
+
+</body>
+</html>
